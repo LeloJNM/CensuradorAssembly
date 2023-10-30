@@ -25,13 +25,12 @@ message6 db "Digite o nome do arquivo de saida:", 0H
 inputHandle dd 0; inputHandle para o ReadConsole
 outputHandle dd 0; outputHandle para o WriteConsole
 console_count dd 0; contador do WriteConsole e ReadConsole
-fileHandle dd 0; handle de entrada
-fileHandle2 dd 0; handle de saida
+inputFileHandle dd 0; handle de entrada
+outputFileHandle dd 0; handle de saida
 readCount dd 0; contador do ReadFile
 writeCount dd 0; contador do WriteFile
-header1 db 18 dup(0); cabecalho com 18 bytes 
-headerLargura db 4 dup(0); cabeçalho da largura
-header3 db 32 dup(0);
+header db 50 dup(0); cabecalho com 54 bytes iniciados em 0
+readWidth dd 0;
 fileBuffer db 3 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
 initialXCoord dd 0;
 initialYCoord dd 0;
@@ -71,3 +70,53 @@ invoke WriteConsole, outputHandle, addr message6, sizeof message6, addr console_
 invoke ReadConsole, inputHandle, addr outputFileName, sizeof outputFileName, addr console_count, NULL; input da variavel fileName2 (o que foi pedido em mensagem2) 
   
 mov esi, offset inputFileName ; Armazenar apontador da string em esi
+proximo:
+ mov al, [esi] ; Mover caractere atual para al
+ inc esi ; Apontar para o proximo caractere
+ cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
+ jne proximo
+ dec esi ; Apontar para caractere anterior
+ xor al, al ; ASCII 0 
+ mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
+
+mov esi, offset outputFileHandle ; Armazenar apontador da string em esi
+proximo2:
+ mov al, [esi] ; Mover caractere atual para al
+ inc esi ; Apontar para o proximo caractere
+ cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
+ jne proximo2
+ dec esi ; Apontar para caractere anterior
+ xor al, al ; ASCII 0
+ mov [esi], al ; Inserir ASCII 0 no lugar do ASCII C
+ 
+
+invoke CreateFile, addr inputFileName, GENERIC_READ, 0, NULL,
+OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
+mov inputFileHandle, eax; abre um file existente atraves da variavel inputFileName
+
+invoke CreateFile, addr out, GENERIC_WRITE, 0, NULL,
+CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL
+mov outputFileHandle, eax; cria um file atraves da variavel outputFileName
+
+invoke ReadFile, inputFileHandle, addr header, 18, addr readCount,
+NULL ; Le 18 bytes do arquivo de entrada
+
+invoke WriteFile, outputFileHandle, addr header, 18, addr writeCount,
+NULL ; Escreve 18 bytes do arquivo de entrada no arquivo de saída
+
+invoke ReadFile, inputFileHandle, addr readWidth, 4, addr readCount,
+NULL ;Le 4 bytes do arquivo de entrada e armazena na variavel readWidth
+
+invoke WriteFile, outputFileHandle, addr readWidth, 4, addr writeCount,
+NULL ; Escreve 4 bytes do arquivo de entrada no arquivo de saída
+
+invoke ReadFile, inputFileHandle, addr header, 32, addr readCount,
+NULL ; Le 32 bytes do arquivo de entrada
+
+invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
+NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de saída
+
+invoke CloseHandle, fileHandle; fecha o handle
+
+  invoke ExitProcess, 0
+end start
