@@ -29,13 +29,24 @@ inputFileHandle dd 0; handle de entrada
 outputFileHandle dd 0; handle de saida
 readCount dd 0; contador do ReadFile
 writeCount dd 0; contador do WriteFile
+
 header db 50 dup(0); cabecalho com 54 bytes iniciados em 0
-readWidth dd 0;
-fileBuffer db 3 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
+readWidth dd 0; variável que vai guardar o valor da largura lido no cabeçalho
+
+
+initialXCoordstr db 7 dup(0); variável string para a coordenada inicial x recebida pelo usuário
+initialYCoordstr db 7 dup(0); variável string para a coordenada inicial y recebida pelo usuário
+censorWidthstr db 7 dup(0); variável string para a largura da censura recebida pelo usuário
+censorHeightstr db 7 dup(0); variável string para a altura recebida pelo usuário
+
 initialXCoord dd 0;
 initialYCoord dd 0;
 censorWidth dd 0;
 censorHeight dd 0;
+
+
+fileBuffer db 3 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
+
 
 .code
 start:
@@ -51,19 +62,19 @@ invoke ReadConsole, inputHandle, addr inputFileName, sizeof inputFileName, addr 
 
 invoke WriteConsole, outputHandle, addr message2, sizeof message2, addr console_count, NULL; escreve a variavel mensagem3 no console
 
-invoke ReadConsole, inputHandle, addr initialXCoord, sizeof initialXCoord, addr console_count, NULL; input da string cor (o que foi pedido em mensagem3)
+invoke ReadConsole, inputHandle, addr initialXCoordstr, sizeof initialXCoordstr, addr console_count, NULL; input da string cor (o que foi pedido em mensagem3)
 
 invoke WriteConsole, outputHandle, addr message3, sizeof message3, addr console_count, NULL; escreve a variavel mensagem4 no console
 
-invoke ReadConsole, inputHandle, addr initialYCoord, sizeof initialYCoord, addr console_count, NULL; input da string intensidade (o que foi pedido em mensagem4)
+invoke ReadConsole, inputHandle, addr initialYCoordstr, sizeof initialYCoordstr, addr console_count, NULL; input da string intensidade (o que foi pedido em mensagem4)
 
 invoke WriteConsole, outputHandle, addr message4, sizeof message4, addr console_count, NULL; escreve a variavel mensagem4 no console
 
-invoke ReadConsole, inputHandle, addr censorWidth, sizeof censorWidth, addr console_count, NULL; input da string intensidade (o que foi pedido em mensagem4)
+invoke ReadConsole, inputHandle, addr censorWidthstr, sizeof censorWidthstr, addr console_count, NULL; input da string intensidade (o que foi pedido em mensagem4)
 
 invoke WriteConsole, outputHandle, addr message5, sizeof message5, addr console_count, NULL; escreve a variavel message5 no console
 
-invoke ReadConsole, inputHandle, addr censorHeight, sizeof censorHeight, addr console_count, NULL; input da variavel censorHeight (
+invoke ReadConsole, inputHandle, addr censorHeightstr, sizeof censorHeightstr, addr console_count, NULL; input da variavel censorHeight (
 
 invoke WriteConsole, outputHandle, addr message6, sizeof message6, addr console_count, NULL; escreve a variavel message6 no console
 
@@ -79,8 +90,48 @@ proximo:
  xor al, al ; ASCII 0 
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
 
-mov esi, offset outputFileName ; Armazenar apontador da string em esi
+mov esi, offset initialXCoordstr ;
 proximo2:
+ mov al, [esi] ; Mover caractere atual para al
+ inc esi ; Apontar para o proximo caractere
+ cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
+ jne proximo
+ dec esi ; Apontar para caractere anterior
+ xor al, al ; ASCII 0 
+ mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
+
+mov esi, offset initialYCoordstr ;
+proximo3:
+ mov al, [esi] ; Mover caractere atual para al
+ inc esi ; Apontar para o proximo caractere
+ cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
+ jne proximo
+ dec esi ; Apontar para caractere anterior
+ xor al, al ; ASCII 0 
+ mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
+
+mov esi, offset censorWidthstr ;
+proximo2:
+ mov al, [esi] ; Mover caractere atual para al
+ inc esi ; Apontar para o proximo caractere
+ cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
+ jne proximo
+ dec esi ; Apontar para caractere anterior
+ xor al, al ; ASCII 0 
+ mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
+
+mov esi, offset censorHeightstr ;
+proximo2:
+ mov al, [esi] ; Mover caractere atual para al
+ inc esi ; Apontar para o proximo caractere
+ cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
+ jne proximo
+ dec esi ; Apontar para caractere anterior
+ xor al, al ; ASCII 0 
+ mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
+
+mov esi, offset outputFileName ; Armazenar apontador da string em esi
+proximo6:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
  cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
@@ -89,6 +140,19 @@ proximo2:
  xor al, al ; ASCII 0
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII C
  
+invoke atodw, addr initialXCoordstr
+mov initialXCoord, eax; transforma a coordenada X inicial digitada pelo usuário em um valor numérico
+
+invoke atodw, addr initialYCoordstr
+mov initialYCoord, eax; transforma a coordenada Y inicial digitada pelo usuário em um valor numérico
+
+invoke atodw, addr censorWidthstr
+mov censorWidth, eax; transforma a largura da censura digitada pelo usuário em um valor numérico
+
+invoke atodw, addr censorHeightstr
+mov censorHeight, eax; transforma a altura da censura digitada pelo usuário em um valor numérico
+
+
 
 invoke CreateFile, addr inputFileName, GENERIC_READ, 0, NULL,
 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
