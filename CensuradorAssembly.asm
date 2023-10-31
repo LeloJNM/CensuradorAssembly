@@ -6,6 +6,8 @@ include \masm32\include\windows.inc
 include \masm32\include\kernel32.inc
 include \masm32\include\user32.inc
 include \masm32\include\msvcrt.inc
+include \masm32\include\masm32.inc
+includelib \masm32\lib\masm32.lib
 includelib \masm32\lib\kernel32.lib
 includelib \masm32\lib\user32.lib
 includelib \masm32\lib\msvcrt.lib
@@ -14,14 +16,12 @@ includelib \masm32\lib\msvcrt.lib
 .data
 inputFileName db 60 dup(0); input para o nome do arquivo que sera aberto
 outputFileName db 60 dup(0); input para o nome do arquivo criado a partir do aberto anteriormente
-
 message1 db "Digite o nome do arquivo de entrada: ", 0H
 message2 db "Digite a coordenada X inicial da censura: ", 0H
 message3 db "Digite a coordenada Y inicial da censura: ", 0H
 message4 db "Digite a largura da censura: ", 0H
 message5 db "Digite a altura da censura:", 0H
 message6 db "Digite o nome do arquivo de saida:", 0H
-
 inputHandle dd 0; inputHandle para o ReadConsole
 outputHandle dd 0; outputHandle para o WriteConsole
 console_count dd 0; contador do WriteConsole e ReadConsole
@@ -29,22 +29,16 @@ inputFileHandle dd 0; handle de entrada
 outputFileHandle dd 0; handle de saida
 readCount dd 0; contador do ReadFile
 writeCount dd 0; contador do WriteFile
-
 header db 50 dup(0); cabecalho com 54 bytes iniciados em 0
-readWidth dd 0; variável que vai guardar o valor da largura lido no cabeçalho
-
-
-initialXCoordstr db 7 dup(0); variável string para a coordenada inicial x recebida pelo usuário
-initialYCoordstr db 7 dup(0); variável string para a coordenada inicial y recebida pelo usuário
-censorWidthstr db 7 dup(0); variável string para a largura da censura recebida pelo usuário
-censorHeightstr db 7 dup(0); variável string para a altura recebida pelo usuário
-
+readWidth dd 0; vari?vel que vai guardar o valor da largura lido no cabe?alho
+initialXCoordstr db 7 dup(0); vari?vel string para a coordenada inicial x recebida pelo usu?rio
+initialYCoordstr db 7 dup(0); vari?vel string para a coordenada inicial y recebida pelo usu?rio
+censorWidthstr db 7 dup(0); vari?vel string para a largura da censura recebida pelo usu?rio
+censorHeightstr db 7 dup(0); vari?vel string para a altura recebida pelo usu?rio
 initialXCoord dd 0;
 initialYCoord dd 0;
 censorWidth dd 0;
 censorHeight dd 0;
-
-
 fileBuffer db 3 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
 
 
@@ -95,7 +89,7 @@ proximo2:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
  cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
- jne proximo
+ jne proximo2
  dec esi ; Apontar para caractere anterior
  xor al, al ; ASCII 0 
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
@@ -105,27 +99,27 @@ proximo3:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
  cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
- jne proximo
+ jne proximo3
  dec esi ; Apontar para caractere anterior
  xor al, al ; ASCII 0 
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
 
 mov esi, offset censorWidthstr ;
-proximo2:
+proximo4:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
  cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
- jne proximo
+ jne proximo4
  dec esi ; Apontar para caractere anterior
  xor al, al ; ASCII 0 
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
 
 mov esi, offset censorHeightstr ;
-proximo2:
+proximo5:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
  cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
- jne proximo
+ jne proximo5
  dec esi ; Apontar para caractere anterior
  xor al, al ; ASCII 0 
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
@@ -135,22 +129,22 @@ proximo6:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
  cmp al, 13 ; Verificar se eh o caractere ASCII CR - FINALIZAR
- jne proximo2
+ jne proximo6
  dec esi ; Apontar para caractere anterior
  xor al, al ; ASCII 0
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII C
  
 invoke atodw, addr initialXCoordstr
-mov initialXCoord, eax; transforma a coordenada X inicial digitada pelo usuário em um valor numérico
+mov initialXCoord, eax; transforma a coordenada X inicial digitada pelo usu?rio em um valor num?rico
 
 invoke atodw, addr initialYCoordstr
-mov initialYCoord, eax; transforma a coordenada Y inicial digitada pelo usuário em um valor numérico
+mov initialYCoord, eax; transforma a coordenada Y inicial digitada pelo usu?rio em um valor num?rico
 
 invoke atodw, addr censorWidthstr
-mov censorWidth, eax; transforma a largura da censura digitada pelo usuário em um valor numérico
+mov censorWidth, eax; transforma a largura da censura digitada pelo usu?rio em um valor num?rico
 
 invoke atodw, addr censorHeightstr
-mov censorHeight, eax; transforma a altura da censura digitada pelo usuário em um valor numérico
+mov censorHeight, eax; transforma a altura da censura digitada pelo usu?rio em um valor num?rico
 
 
 
@@ -166,22 +160,24 @@ invoke ReadFile, inputFileHandle, addr header, 18, addr readCount,
 NULL ; Le 18 bytes do arquivo de entrada
 
 invoke WriteFile, outputFileHandle, addr header, 18, addr writeCount,
-NULL ; Escreve 18 bytes do arquivo de entrada no arquivo de saída
+NULL ; Escreve 18 bytes do arquivo de entrada no arquivo de sa?da
 
 invoke ReadFile, inputFileHandle, addr readWidth, 4, addr readCount,
 NULL ;Le 4 bytes do arquivo de entrada e armazena na variavel readWidth
 
 invoke WriteFile, outputFileHandle, addr readWidth, 4, addr writeCount,
-NULL ; Escreve 4 bytes do arquivo de entrada no arquivo de saída
+NULL ; Escreve 4 bytes do arquivo de entrada no arquivo de sa?da
 
 invoke ReadFile, inputFileHandle, addr header, 32, addr readCount,
 NULL ; Le 32 bytes do arquivo de entrada
 
 invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
-NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de saída
+NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de sa?da
 
 
 
+
+fim:
 invoke CloseHandle, inputFileHandle; fecha o handle de entrada
 invoke CloseHandle, outputFileHandle; fecha o handle de entrada
   invoke ExitProcess, 0
