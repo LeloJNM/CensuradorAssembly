@@ -6,8 +6,8 @@ include \masm32\include\windows.inc
 include \masm32\include\kernel32.inc
 include \masm32\include\user32.inc
 include \masm32\include\msvcrt.inc
-includelib \masm32\include\kernel32.lib
-includelib \masm32\include\user32.lib
+includelib \masm32\lib\kernel32.lib
+includelib \masm32\lib\user32.lib
 includelib \masm32\lib\msvcrt.lib
 
 
@@ -79,7 +79,7 @@ proximo:
  xor al, al ; ASCII 0 
  mov [esi], al ; Inserir ASCII 0 no lugar do ASCII CR
 
-mov esi, offset outputFileHandle ; Armazenar apontador da string em esi
+mov esi, offset outputFileName ; Armazenar apontador da string em esi
 proximo2:
  mov al, [esi] ; Mover caractere atual para al
  inc esi ; Apontar para o proximo caractere
@@ -94,7 +94,7 @@ invoke CreateFile, addr inputFileName, GENERIC_READ, 0, NULL,
 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
 mov inputFileHandle, eax; abre um file existente atraves da variavel inputFileName
 
-invoke CreateFile, addr out, GENERIC_WRITE, 0, NULL,
+invoke CreateFile, addr outputFileName, GENERIC_WRITE, 0, NULL,
 CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL
 mov outputFileHandle, eax; cria um file atraves da variavel outputFileName
 
@@ -116,7 +116,9 @@ NULL ; Le 32 bytes do arquivo de entrada
 invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
 NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de saída
 
-invoke CloseHandle, fileHandle; fecha o handle
 
+
+invoke CloseHandle, inputFileHandle; fecha o handle de entrada
+invoke CloseHandle, outputFileHandle; fecha o handle de entrada
   invoke ExitProcess, 0
 end start
