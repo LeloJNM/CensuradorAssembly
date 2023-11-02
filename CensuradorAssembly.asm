@@ -48,6 +48,37 @@ fileBuffer db 6480 dup(0); apontador para um array de bytes, onde serao guardado
 
 
 .code
+funcao:
+; Salva os registradores que serão usados
+    push eax
+    push ebx
+    push ecx
+
+
+    ; Obtém os parâmetros da pilha
+    mov eax, [esp + 16] ; fileBuffer
+    mov ebx, [esp + 12] ; initialXCoord
+    mov ecx, [esp + 8]  ; censorWidth
+
+    ; Calcula a soma de initialXCoord e censorWidth
+    add ebx, ecx
+
+    ; Verifica se o pixel atual está dentro da faixa a ser censurada
+    cmp ebx, initialXCoord
+    jl skip
+
+    ; Se estiver dentro da faixa, altera a cor do pixel para preto
+    mov byte ptr [eax], 0 ; Blue
+    mov byte ptr [eax + 1], 0 ; Green
+    mov byte ptr [eax + 2], 0; Red
+
+skip:
+    ; Restaura os registradores e retorna
+    pop ecx
+    pop ebx
+    pop eax
+    ret 12 ; Limpa os parâmetros da pilha e retorna
+
 start:
 
 invoke GetStdHandle, STD_INPUT_HANDLE
@@ -181,27 +212,7 @@ NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de sa?da
 
 
 
-funcao:
-push ebp
-mov ebp, esp
 
-mov eax, DWORD PTR [ebp+8]; fileBuffer
-mov ebx, DWORD PTR [ebp+12]; coordenada x incial
-mov ecx, DWORD PTR [ebp+16]; larg da censura indicada
-
-xor edx, edx; zera edx
-add eax, ebx; adiciona ebx(cor) a edx
-mov dl, BYTE PTR [eax]; pega um byte de edx e adiciona o valor de eax
-add edx, ecx; adiciona ecx(intensidade) ao valor atual de edx
-cmp edx, 255; compara edx com 255
-jbe termino; pula se for menor igual para a label termino
-mov edx, 255; se for maior faz com edx atinja o valor limite de 255
-termino:
-mov BYTE PTR [eax], dl; aplica o valor atual de dl para um byte de eax
-
-mov esp, ebp
-pop ebp
-ret 12
 
 
 ;coordenada x inicial
@@ -210,15 +221,17 @@ ret 12
 ; altura da censura que vai ser y + 3*altura
 ; filebuffer = 3*0 loop
 
-
 _loop:
 invoke ReadFile, inputFileHandle, addr fileBuffer, 3, addr readCount,
 NULL ; Le 3 bytes do arquivo (pixel)
 
 cmp readCount, 0; compara readCount com 0 para saber se a opera??o chegou ao fim
-
 je fim; pula para a label fim
+push censorWidth
+push initialXCoord
+push offset fileBuffer
 
+call funcao
  
 
 invoke WriteFile, outputFileHandle, addr fileBuffer, 3, addr writeCount,
