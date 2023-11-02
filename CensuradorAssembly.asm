@@ -22,6 +22,7 @@ message3 db "Digite a coordenada Y inicial da censura: ", 0H
 message4 db "Digite a largura da censura: ", 0H
 message5 db "Digite a altura da censura:", 0H
 message6 db "Digite o nome do arquivo de saida:", 0H
+
 inputHandle dd 0; inputHandle para o ReadConsole
 outputHandle dd 0; outputHandle para o WriteConsole
 console_count dd 0; contador do WriteConsole e ReadConsole
@@ -29,17 +30,21 @@ inputFileHandle dd 0; handle de entrada
 outputFileHandle dd 0; handle de saida
 readCount dd 0; contador do ReadFile
 writeCount dd 0; contador do WriteFile
+
 header db 50 dup(0); cabecalho com 54 bytes iniciados em 0
 readWidth dd 0; vari?vel que vai guardar o valor da largura lido no cabe?alho
+
 initialXCoordstr db 7 dup(0); vari?vel string para a coordenada inicial x recebida pelo usu?rio
 initialYCoordstr db 7 dup(0); vari?vel string para a coordenada inicial y recebida pelo usu?rio
 censorWidthstr db 7 dup(0); vari?vel string para a largura da censura recebida pelo usu?rio
 censorHeightstr db 7 dup(0); vari?vel string para a altura recebida pelo usu?rio
+
 initialXCoord dd 0;
 initialYCoord dd 0;
 censorWidth dd 0;
 censorHeight dd 0;
-fileBuffer db 3 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
+
+fileBuffer db 6480 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
 
 
 .code
@@ -175,15 +180,46 @@ invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
 NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de sa?da
 
 
+
+funcao:
+push ebp
+mov ebp, esp
+
+mov eax, DWORD PTR [ebp+8]; fileBuffer
+mov ebx, DWORD PTR [ebp+12]; coordenada x incial
+mov ecx, DWORD PTR [ebp+16]; larg da censura indicada
+
+xor edx, edx; zera edx
+add eax, ebx; adiciona ebx(cor) a edx
+mov dl, BYTE PTR [eax]; pega um byte de edx e adiciona o valor de eax
+add edx, ecx; adiciona ecx(intensidade) ao valor atual de edx
+cmp edx, 255; compara edx com 255
+jbe termino; pula se for menor igual para a label termino
+mov edx, 255; se for maior faz com edx atinja o valor limite de 255
+termino:
+mov BYTE PTR [eax], dl; aplica o valor atual de dl para um byte de eax
+
+mov esp, ebp
+pop ebp
+ret 12
+
+
+;coordenada x inicial
+; coordenada y inicial
+; largura da censura q vai ser x + 3*largura
+; altura da censura que vai ser y + 3*altura
+; filebuffer = 3*0 loop
+
+
 _loop:
 invoke ReadFile, inputFileHandle, addr fileBuffer, 3, addr readCount,
 NULL ; Le 3 bytes do arquivo (pixel)
 
 cmp readCount, 0; compara readCount com 0 para saber se a opera??o chegou ao fim
+
 je fim; pula para a label fim
 
-push offset fileBuffer; da um push no offset do fileBuffer
-; variaveis da pilha chamadas de tras para frente para estar na ordem correta na funcao
+ 
 
 invoke WriteFile, outputFileHandle, addr fileBuffer, 3, addr writeCount,
 NULL ; Escreve 3 bytes do arquivo (pixel)
