@@ -175,10 +175,23 @@ invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
 NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de sa?da
 
 
+_loop:
+invoke ReadFile, inputFileHandle, addr fileBuffer, 3, addr readCount,
+NULL ; Le 3 bytes do arquivo (pixel)
+
+cmp readCount, 0; compara readCount com 0 para saber se a opera??o chegou ao fim
+je fim; pula para a label fim
+
+push offset fileBuffer; da um push no offset do fileBuffer
+; variaveis da pilha chamadas de tras para frente para estar na ordem correta na funcao
+
+invoke WriteFile, outputFileHandle, addr fileBuffer, 3, addr writeCount,
+NULL ; Escreve 3 bytes do arquivo (pixel)
+jmp _loop; volta para a label _loop
 
 
 fim:
 invoke CloseHandle, inputFileHandle; fecha o handle de entrada
-invoke CloseHandle, outputFileHandle; fecha o handle de entrada
+invoke CloseHandle, outputFileHandle; fecha o handle de sa�da
   invoke ExitProcess, 0
-end start
+end start 
