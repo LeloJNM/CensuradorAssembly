@@ -48,50 +48,17 @@ censorHeight dd 0; variavel numerica para a altura da censura
 
 fileBuffer db 6480 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
 
-contador_de_pixels_da_linha dd 0
 atualY dd 0
 atualX dd 0
+
 .code
 funcao:
   push ebp
   mov ebp, esp  
-  sub esp, 4 ; numnero referente a quantidade de variaveis locais na funçao
 
-  ;Aloca o contador na pilha (iniciando em zero mesmo)
-  mov eax, contador_de_pixels_da_linha
 
-  mov DWORD PTR [ebp-4], eax
 
-  mov ebx, DWORD PTR [ebp+12];  ebx recebe a coordenada x inicial
 
-  ;mov eax, [ebp+8]
-  mov ecx, DWORD PTR [ebp+16]; larg da censura indicada
-
-  ;add edx, ecx ; adiciona a coordenada x inicial o valor da largura que deve ser percorrida n precisa (usando lea) 
-
-      ;lea esi, filebuffer[ebx] array de bytes nao pixel, multiplica por 3 depois faz o lea
-      ;esi = filebuffer[x_coord * 3]
-  imul ebx, 3 ; coordenada x inicial multiplicada por 3 para chegar no pixel inicial da mudança
-
-  ; somar ecx com 
-  lea eax, fileBuffer[ebx]  ; LOAD EFFECTIVE ADRESS, file buffer eh um array e quero acessar no endereço ebx, se eu uso lea: eax vai apontar para o primeiro byte do endereço do ebx, que tem a coord x
-  ;eax agr aponta pra o primeiro byte do primeiro pixel
-  loopwidth:
-    mov BYTE PTR [eax], 0
-    mov BYTE PTR [eax+1], 0
-    mov BYTE PTR [eax+2], 0
-
-    add eax, 3 ;eax vai apontar para o proximo byte do proximo pixel da linha
-	  ;comparar se eax tá igual a coordenada x inicial + largura da censura
-    ;Incrementa o pixel_counter a cada adição
-    inc DWORD PTR [ebp-4]
-
-    mov edx, DWORD PTR [ebp-4] ;move pixel_counter pra ed
-
-    cmp edx, ecx  ;compara counter == largura censura
-
-    jne loopwidth
-;jne loopwidth
 
 ;termino:
 mov esp, ebp
@@ -279,13 +246,10 @@ chamafuncao:
   mov byte ptr [fileBuffer], 0
   mov byte ptr [fileBuffer + 1], 0
   mov byte ptr [fileBuffer + 2], 0
-  mov ebx, atualX
-  invoke dwtoa, ebx, addr initialXCoordstr 
-	;invoke WriteConsole, outputHandle, addr initialXCoordstr, sizeof initialXCoordstr, addr console_count, NULL 	
   jmp escreve
   
 
-;  push censorWidth ; terceiro parametro
+; push censorWidth ; terceiro parametro
 ;	push initialXCoord ; segundo parametro
 ;	push offset fileBuffer ; primeiro parametro
 ;
