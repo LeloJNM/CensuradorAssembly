@@ -22,6 +22,8 @@ message3 db "Digite a coordenada Y inicial da censura: ", 0H
 message4 db "Digite a largura da censura: ", 0H
 message5 db "Digite a altura da censura:", 0H
 message6 db "Digite o nome do arquivo de saida:", 0H
+message7 db "CENSURANDO\n", 0H
+
 
 inputHandle dd 0; inputHandle para o ReadConsole
 outputHandle dd 0; outputHandle para o WriteConsole
@@ -34,50 +36,68 @@ writeCount dd 0; contador do WriteFile
 header db 50 dup(0); cabecalho com 54 bytes iniciados em 0
 readWidth dd 0; vari?vel que vai guardar o valor da largura lido no cabe?alho
 
-initialXCoordstr db 7 dup(0); vari?vel string para a coordenada inicial x recebida pelo usu?rio
-initialYCoordstr db 7 dup(0); vari?vel string para a coordenada inicial y recebida pelo usu?rio
-censorWidthstr db 7 dup(0); vari?vel string para a largura da censura recebida pelo usu?rio
-censorHeightstr db 7 dup(0); vari?vel string para a altura recebida pelo usu?rio
+initialXCoordstr db 50 dup(0); vari?vel string para a coordenada inicial x recebida pelo usu?rio
+initialYCoordstr db 50 dup(0); vari?vel string para a coordenada inicial y recebida pelo usu?rio
+censorWidthstr db 50 dup(0); vari?vel string para a largura da censura recebida pelo usu?rio
+censorHeightstr db 50 dup(0); vari?vel string para a altura recebida pelo usu?rio
 
-initialXCoord dd 0;
-initialYCoord dd 0;
-censorWidth dd 0;
-censorHeight dd 0;
+initialXCoord dd 0; variavel numerica para a coordenada x inicial 
+initialYCoord dd 0; variavel numerica para a coordenada y inicial
+censorWidth dd 0; variavel numerica para a largura da censura
+censorHeight dd 0; variavel numerica para a altura da censura
 
 fileBuffer db 6480 dup(0); apontador para um array de bytes, onde serao guardados os bytes lidos pelo arquivo
 
-
+contador_de_pixels_da_linha dd 0
+atualY dd 0
+atualX dd 0
 .code
 funcao:
-; Salva os registradores que serão usados
-    push eax
-    push ebx
-    push ecx
+  push ebp
+  mov ebp, esp  
+  sub esp, 4 ; numnero referente a quantidade de variaveis locais na funçao
 
+  ;Aloca o contador na pilha (iniciando em zero mesmo)
+  mov eax, contador_de_pixels_da_linha
 
-    ; Obtém os parâmetros da pilha
-    mov eax, [esp + 16] ; fileBuffer
-    mov ebx, [esp + 12] ; initialXCoord
-    mov ecx, [esp + 8]  ; censorWidth
+  mov DWORD PTR [ebp-4], eax
 
-    ; Calcula a soma de initialXCoord e censorWidth
-    add ebx, ecx
+  mov ebx, DWORD PTR [ebp+12];  ebx recebe a coordenada x inicial
 
-    ; Verifica se o pixel atual está dentro da faixa a ser censurada
-    cmp ebx, initialXCoord
-    jl skip
+  ;mov eax, [ebp+8]
+  mov ecx, DWORD PTR [ebp+16]; larg da censura indicada
 
-    ; Se estiver dentro da faixa, altera a cor do pixel para preto
-    mov byte ptr [eax], 0 ; Blue
-    mov byte ptr [eax + 1], 0 ; Green
-    mov byte ptr [eax + 2], 0; Red
+  ;add edx, ecx ; adiciona a coordenada x inicial o valor da largura que deve ser percorrida n precisa (usando lea) 
 
-skip:
-    ; Restaura os registradores e retorna
-    pop ecx
-    pop ebx
-    pop eax
-    ret 12 ; Limpa os parâmetros da pilha e retorna
+      ;lea esi, filebuffer[ebx] array de bytes nao pixel, multiplica por 3 depois faz o lea
+      ;esi = filebuffer[x_coord * 3]
+  imul ebx, 3 ; coordenada x inicial multiplicada por 3 para chegar no pixel inicial da mudança
+
+  ; somar ecx com 
+  lea eax, fileBuffer[ebx]  ; LOAD EFFECTIVE ADRESS, file buffer eh um array e quero acessar no endereço ebx, se eu uso lea: eax vai apontar para o primeiro byte do endereço do ebx, que tem a coord x
+  ;eax agr aponta pra o primeiro byte do primeiro pixel
+  loopwidth:
+    mov BYTE PTR [eax], 0
+    mov BYTE PTR [eax+1], 0
+    mov BYTE PTR [eax+2], 0
+
+    add eax, 3 ;eax vai apontar para o proximo byte do proximo pixel da linha
+	  ;comparar se eax tá igual a coordenada x inicial + largura da censura
+    ;Incrementa o pixel_counter a cada adição
+    inc DWORD PTR [ebp-4]
+
+    mov edx, DWORD PTR [ebp-4] ;move pixel_counter pra ed
+
+    cmp edx, ecx  ;compara counter == largura censura
+
+    jne loopwidth
+;jne loopwidth
+
+;termino:
+mov esp, ebp
+pop ebp
+ret 12
+
 
 start:
 
@@ -211,33 +231,65 @@ invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
 NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de sa?da
 
 
-
-
-
-
 ;coordenada x inicial
 ; coordenada y inicial
 ; largura da censura q vai ser x + 3*largura
 ; altura da censura que vai ser y + 3*altura
 ; filebuffer = 3*0 loop
 
+mov atualY, 0
 _loop:
-invoke ReadFile, inputFileHandle, addr fileBuffer, 3, addr readCount,
-NULL ; Le 3 bytes do arquivo (pixel)
+
+invoke ReadFile, inputFileHandle, addr fileBuffer, 3, addr readCount, NULL ; Le 3 bytes do arquivo (pixel)
 
 cmp readCount, 0; compara readCount com 0 para saber se a opera??o chegou ao fim
 je fim; pula para a label fim
-push censorWidth
-push initialXCoord
-push offset fileBuffer
 
-call funcao
- 
+inc atualX     ;  incremente a coordenada x 
+mov ebx, atualX 
+mov ecx, initialXCoord 
+cmp ebx, ecx ; compara com a coordenada inicial, se for menor ele copia a imagem original
+jb escreve 
+mov ebx, atualX ; se não, ele verifica se tá dentro da região de censura
+mov ecx, initialXCoord
+add ecx, censorWidth
+cmp ebx, ecx  ;compara se a coordenada atual de x é menor que a inicial + a largura para chamar a função de censura
+jb chamafuncao
+mov ecx, readWidth ; se chegou ao  fim da linha, ele zera x  e incrementa Y
+cmp ebx, ecx
+je zeraXeIncrementaY
 
-invoke WriteFile, outputFileHandle, addr fileBuffer, 3, addr writeCount,
-NULL ; Escreve 3 bytes do arquivo (pixel)
-jmp _loop; volta para a label _loop
 
+escreve:
+  invoke WriteFile, outputFileHandle, addr fileBuffer, 3, addr writeCount, NULL ; Escreve 3 bytes do arquivo (pixel)
+  jmp _loop; volta para a label _loop
+zeraXeIncrementaY:
+  inc atualY
+  mov atualX, 0
+  jmp escreve
+chamafuncao: 
+    mov ebx, atualY ;verifica se tá dentro da regiao da altura
+    mov ecx, initialYCoord
+    cmp ebx, ecx ; ve se chegou na altura inicial, se não copia a imagem
+    jb escreve 
+    add ecx, censorHeight; soma a coordenada inicial com a altura maxima para comparar se tá dentro do limite da censura, se for menor, ele chama a função
+    cmp ebx, ecx
+    jg escreve
+
+  mov byte ptr [fileBuffer], 0
+  mov byte ptr [fileBuffer + 1], 0
+  mov byte ptr [fileBuffer + 2], 0
+  mov ebx, atualX
+  invoke dwtoa, ebx, addr initialXCoordstr 
+	;invoke WriteConsole, outputHandle, addr initialXCoordstr, sizeof initialXCoordstr, addr console_count, NULL 	
+  jmp escreve
+  
+
+;  push censorWidth ; terceiro parametro
+;	push initialXCoord ; segundo parametro
+;	push offset fileBuffer ; primeiro parametro
+;
+;	call funcao
 
 fim:
 invoke CloseHandle, inputFileHandle; fecha o handle de entrada
