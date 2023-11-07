@@ -1,3 +1,8 @@
+;Aurélio José Nogueira de Magalhães Júnior
+;Matricula: 20210025600
+;Allan Cristhian Barros Diniz
+;Matricula: 20210025106
+
 .686
 .model flat, stdcall
 option casemap :none
@@ -54,11 +59,15 @@ atualX dd 0
 .code
 funcao:
   push ebp
-  mov ebp, esp  
+  mov ebp, esp
 
 
+  mov eax, [ebp+8]
 
-
+  mov byte ptr [eax], 0
+  mov byte ptr [eax + 1], 0
+  mov byte ptr [eax + 2], 0
+  jmp escrevePixel
 
 ;termino:
 mov esp, ebp
@@ -198,11 +207,6 @@ invoke WriteFile, outputFileHandle, addr header, 32, addr writeCount,
 NULL ; Escreve 32 bytes do arquivo de entrada no arquivo de sa?da
 
 
-;coordenada x inicial
-; coordenada y inicial
-; largura da censura q vai ser x + 3*largura
-; altura da censura que vai ser y + 3*altura
-; filebuffer = 3*0 loop
 
 mov atualY, 0
 _loop:
@@ -216,47 +220,44 @@ inc atualX     ;  incremente a coordenada x
 mov ebx, atualX 
 mov ecx, initialXCoord 
 cmp ebx, ecx ; compara com a coordenada inicial, se for menor ele copia a imagem original
-jb escreve 
+jb escrevePixel 
 mov ebx, atualX ; se não, ele verifica se tá dentro da região de censura
 mov ecx, initialXCoord
 add ecx, censorWidth
 cmp ebx, ecx  ;compara se a coordenada atual de x é menor que a inicial + a largura para chamar a função de censura
-jb chamafuncao
+jb verificaY
 mov ecx, readWidth ; se chegou ao  fim da linha, ele zera x  e incrementa Y
 cmp ebx, ecx
 je zeraXeIncrementaY
 
 
-escreve:
+escrevePixel:
   invoke WriteFile, outputFileHandle, addr fileBuffer, 3, addr writeCount, NULL ; Escreve 3 bytes do arquivo (pixel)
   jmp _loop; volta para a label _loop
-zeraXeIncrementaY:
+
+zeraXeIncrementaY:;Realiza a troca de y, zerando a coordenada x que chegou ao fim da linha
   inc atualY
   mov atualX, 0
-  jmp escreve
-chamafuncao: 
-    mov ebx, atualY ;verifica se tá dentro da regiao da altura
-    mov ecx, initialYCoord
-    cmp ebx, ecx ; ve se chegou na altura inicial, se não copia a imagem
-    jb escreve 
-    add ecx, censorHeight; soma a coordenada inicial com a altura maxima para comparar se tá dentro do limite da censura, se for menor, ele chama a função
-    cmp ebx, ecx
-    jg escreve
+  jmp escrevePixel
 
-  mov byte ptr [fileBuffer], 0
-  mov byte ptr [fileBuffer + 1], 0
-  mov byte ptr [fileBuffer + 2], 0
-  jmp escreve
-  
+verificaY:
+  mov ebx, atualY ;verifica se tá dentro da regiao da altura
+  mov ecx, initialYCoord
+  cmp ebx, ecx ; ve se chegou na altura inicial, se não copia a imagem
+  jb escrevePixel
+  add ecx, censorHeight; soma a coordenada inicial com a altura maxima para comparar se tá dentro do limite da censura, se for menor, ele chama a função
+  cmp ebx, ecx
+  jg escrevePixel
 
-; push censorWidth ; terceiro parametro
-;	push initialXCoord ; segundo parametro
-;	push offset fileBuffer ; primeiro parametro
 ;
-;	call funcao
+ push censorWidth ; terceiro parametro
+ push initialXCoord ; segundo parametro
+ push offset fileBuffer ; primeiro parametro
+
+ call funcao
 
 fim:
 invoke CloseHandle, inputFileHandle; fecha o handle de entrada
-invoke CloseHandle, outputFileHandle; fecha o handle de sa�da
+invoke CloseHandle, outputFileHandle; fecha o handle de saida
   invoke ExitProcess, 0
 end start 
